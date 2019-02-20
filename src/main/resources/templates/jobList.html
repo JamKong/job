@@ -1,0 +1,332 @@
+<!DOCTYPE>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+    <div th:replace="head"></div>
+<body>
+
+<!-- Left Panel -->
+<div th:replace="menu::menu"></div>
+<!-- /#left-panel -->
+<!-- Right Panel -->
+<div id="right-panel" class="right-panel">
+    <!-- Header-->
+    <div th:replace="header::header"></div>
+    <!-- /#header -->
+
+    <!-- 页面内容部分 -->
+    <div class="breadcrumbs">
+        <div class="breadcrumbs-inner">
+            <div class="row m-0">
+                <div class="col-sm-4">
+                    <div class="page-header float-left">
+                        <div class="page-title">
+                            <h1>Dashboard</h1>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-8">
+                    <div class="page-header float-right">
+                        <div class="page-title">
+                            <ol class="breadcrumb text-right">
+                                <li><a href="#">Dashboard</a></li>
+                                <li><a href="#">任务管理</a></li>
+                                <li class="active">任务列表</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="content">
+        <div class="animated fadeIn">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <strong class="card-title">任务列表</strong>
+                            <a class="btn btn-success btn-sm pull-right" onclick="showEditModel()"><span
+                                    style="color:#fff;">+</span></a>
+                        </div>
+                        <div class="table-stats order-table ov-h">
+                            <table class="table ">
+                                <thead>
+                                <tr>
+                                    <th class="serial">#</th>
+                                    <th>任务名</th>
+                                    <!--<th>触发器名</th>-->
+                                    <th>分组</th>
+                                    <th>执行类</th>
+                                    <th>执行方法</th>
+                                    <th>cron表达式</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="value,iterStat:${list}">
+                                    <td class="serial" th:text="${iterStat.index+1}"></td>
+                                    <td><span th:text="${value.name}"></span></td>
+                                    <!--<td th:text="${value.triggerName}"></td>-->
+                                    <td th:text="${value.groupName}"></td>
+                                    <td th:text="${value.beanName}"></td>
+                                    <td th:text="${value.methodName}"></td>
+                                    <td th:text="${value.cronExp}">0/2 * * * * ?</td>
+                                    <td th:if="${value.status==0}">
+                                        <span class="badge badge-danger">已停止</span>
+                                    </td>
+                                    <td th:unless="${value.status==0}">
+                                        <span class="badge badge-success">运行中</span>
+                                    </td>
+                                    <td>
+                                            <span class="btn btn-sm btn-success"
+                                                  th:onclick="'restarJob(\''+${value.id}+'\')'"
+                                                  th:if="${value.status == 0}">重启</span>
+                                        <span class="btn btn-sm btn-danger" th:onclick="'stopJob(\''+${value.id}+'\')'"
+                                              th:unless="${value.status == 0}">停止</span>
+                                        <span class="btn btn-sm btn-primary"
+                                              th:onclick="'showEditModel(\''+${value.id}+'\')'">编辑</span>
+                                        <span class="btn btn-sm btn-warning" th:onclick="'delJob(\''+${value.id}+'\')'">删除</span>
+                                    </td>
+                                </tr>
+
+                                </tbody>
+                            </table>
+
+                            <ul class="pagination pull-right" id="pagination" ></ul>
+                            <input type="hidden" id="currentPage" runat="server" th:value="${pageNo}"/>
+                            <input type="hidden" id="PageCount" runat="server" th:value="${total}"/>
+                            <input type="hidden" id="PageSize" runat="server" th:value="${pageSize}"/>
+                            <input type="hidden" id="countindex" runat="server"
+                                   th:value="${total%pageSize>0?(total/pageSize)+1:(total/pageSize)}"/>
+                            <!--设置最多显示的页码数 可以手动设置 默认为7-->
+                            <input type="hidden" id="visiblePages" runat="server" value="7"/>
+                        </div> <!-- /.table-stats -->
+                    </div>
+                </div>
+
+            </div>
+        </div><!-- .animated -->
+    </div><!-- .content -->
+
+
+    <div class="modal fade" id="jobModal" tabindex="-1" role="dialog" aria-labelledby="jobModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="jobModalLabel">任务</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form action="/job" method="post" class="form-horizontal">
+                    <div class="modal-body">
+                        <div class="card-body card-block">
+                            <input type="hidden" name="id">
+                            <div class="row form-group">
+                                <div class="col col-md-3"><label class=" form-control-label">任务名</label></div>
+                                <div class="col-12 col-md-9">
+                                    <input type="text" name="name">
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <div class="col col-md-3"><label class=" form-control-label">触发类</label></div>
+                                <div class="col-12 col-md-9">
+                                    <input type="text" name="beanName">
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <div class="col col-md-3"><label class=" form-control-label">触发方法</label></div>
+                                <div class="col-12 col-md-9">
+                                    <input type="text" name="methodName">
+                                </div>
+                            </div>
+
+                            <div class="row form-group">
+                                <div class="col col-md-3"><label class=" form-control-label">cron表达式</label></div>
+                                <div class="col-12 col-md-9">
+                                    <input type="text" name="cronExp">
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <div class="col col-md-3"><label class=" form-control-label">分组</label></div>
+                                <div class="col-12 col-md-9">
+                                    <input type="text" name="groupName">
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <div class="col col-md-3"><label class=" form-control-label">状态</label></div>
+                                <div class="col-12 col-md-9">
+                                    <select name="status">
+                                        <option value="1">启动</option>
+                                        <option value="0">停止</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <div class="col col-md-3"><label class=" form-control-label">是否立刻执行一次</label></div>
+                                <div class="col-12 col-md-9">
+                                    <input type="checkbox" name="runNow" value="1">
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Footer -->
+    <div th:replace="footer::footer"></div>
+    <!-- /.site-footer -->
+</div>
+<!-- /#right-panel -->
+
+
+</body>
+</html>
+<script th:inline="none">
+
+    function showEditModel(id) {
+        if (!!id) {
+            getJob(id, function (err, data) {
+                if (!!err) {
+                    console.error(err);
+                } else {
+                    jQuery("#jobModal input[name='id']").val(data.data['id']);
+                    jQuery("#jobModal input[name='name']").val(data.data['name']);
+                    jQuery("#jobModal input[name='triggerName']").val(data.data['triggerName']);
+                    jQuery("#jobModal input[name='groupName']").val(data.data['groupName']);
+                    jQuery("#jobModal input[name='beanName']").val(data.data['beanName']);
+                    jQuery("#jobModal input[name='methodName']").val(data.data['methodName']);
+                    jQuery("#jobModal input[name='cronExp']").val(data.data['cronExp']);
+                    jQuery("#jobModal select[name='status']").val(data.data['status']);
+                    if (!!data.data['runNow']) {
+                        jQuery("#jobModal input[name='runNow']").prop('checked', true);
+                    } else {
+                        jQuery("#jobModal input[name='runNow']").prop('checked', false);
+                    }
+
+                    jQuery("#jobModal").modal({show: true});
+                }
+            })
+        } else {
+            jQuery("#jobModal input").val("");
+            jQuery("#jobModal").modal({show: true});
+        }
+
+    }
+
+
+    function getJob(id, cb) {
+        jQuery.ajax("/job/" + id, {
+            dataType: "json",
+            type: "GET",
+            success: function (data) {
+                console.log(data);
+                cb(null, data);
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log("err:" + jqXHR.responseText);
+                cb(jqXHR);
+            }
+        })
+    }
+
+    /**
+     * 恢复任务、重启
+     * @param id
+     */
+    function restarJob(id) {
+        updateJobStatus(id, 1);
+    }
+
+    function stopJob(id) {
+        updateJobStatus(id, 0);
+    }
+
+    function delJob(id) {
+        jQuery.ajax("/job/save", {
+            dataType: "json",
+            type: "POST",
+            data: {
+                id: id,
+                delFlag: 1
+            },
+            success: function (data) {
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log("err:" + jqXHR.responseText);
+                location.reload();
+            }
+        })
+    }
+
+    function updateJobStatus(id, status) {
+        jQuery.ajax("/job/save", {
+            dataType: "json",
+            type: "POST",
+            data: {
+                id: id,
+                status: status
+            },
+            success: function (data) {
+                // console.log(data);
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log("err:" + jqXHR.responseText);
+                location.reload();
+            }
+        })
+    }
+
+
+
+
+    function loadpage() {
+        var myPageCount = parseInt(jQuery("#PageCount").val());
+        var myPageSize = parseInt(jQuery("#PageSize").val());
+        var countindex = myPageCount % myPageSize > 0 ? (myPageCount / myPageSize) + 1 : (myPageCount / myPageSize);
+        jQuery("#countindex").val(countindex);
+
+        jQuery.jqPaginator('#pagination', {
+            totalPages: parseInt(jQuery("#countindex").val())||1,
+            visiblePages: parseInt(jQuery("#visiblePages").val())||7,
+            currentPage: parseInt(jQuery("#currentPage").val())||0,
+            first: '<li class="first"><a href="javascript:;">首页</a></li>',
+            prev: '<li class="prev"><a href="javascript:;"><i class="arrow arrow2"></i>上一页</a></li>',
+            next: '<li class="next"><a href="javascript:;">下一页<i class="arrow arrow3"></i></a></li>',
+            last: '<li class="last"><a href="javascript:;">末页</a></li>',
+            page: '<li class="page"><a href="javascript:;">{{page}}</a></li>',
+            onPageChange: function (num, type) {
+                if (type == "change") {
+                    exeData(num, type);
+                    console.log("num:",num);
+                }
+            }
+        });
+    }
+
+    function exeData(num, type) {
+        loadData(num);
+        loadpage();
+    }
+
+    function loadData(num) {
+        window.location.href="/job?pageNo="+num;
+    }
+
+    jQuery(function () {
+        loadpage();
+    })
+    // jQuery("#jobModal").modal({show: true});
+</script>
